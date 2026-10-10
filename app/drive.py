@@ -61,7 +61,11 @@ class DriveStore:
                 self.credentials.refresh(Request())
                 if self.local_credentials:
                     store_credentials(self.credentials.to_json(), self.key, self.root / ".secrets/drive-credentials.enc")
-        return build("drive", "v3", http=AuthorizedHttp(self.credentials, http=httplib2.Http(timeout=30)), cache_discovery=False)
+        http = httplib2.Http(timeout=30)
+        # Drive uses 308 for an incomplete upload, not a redirect. Custom
+        # transports must mirror googleapiclient.http.build_http's setting.
+        http.redirect_codes = http.redirect_codes - {308}
+        return build("drive", "v3", http=AuthorizedHttp(self.credentials, http=http), cache_discovery=False)
 
     def generate_ids(self):
         with self.client() as drive:
