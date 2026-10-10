@@ -1,7 +1,8 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-watchPatterns = ["/**"]
+# This dedicated repository needs no monorepo watch filter.
+watchPatterns = []
 
 [deploy]
 healthcheckPath = "/ready"
