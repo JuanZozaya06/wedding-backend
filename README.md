@@ -10,7 +10,7 @@ GET /health informa uploads_enabled. PHOTOS_ENABLED debe ser true y ambas conexi
 
 ## Estado de la primera etapa
 
-Angular expone /fotos. En desarrollo usa el backend local en 127.0.0.1:8000. Solo ?instance=demo o el dominio de demo usan IndexedDB, aislado del álbum real. En producción, configurar apiBaseUrl HTTPS en frontend/public/photos-config.json; vacío mantiene la recepción desactivada. /admin → Fotos verifica en el servidor la misma clave del admin antes de listar o descargar. No se cambiaron reglas remotas: las nuevas colecciones no tienen acceso permitido desde clientes.
+Angular expone /fotos y usa la URL HTTPS configurada en frontend/public/photos-config.json, también durante el desarrollo local. Si esa configuración está vacía, solo el modo de desarrollo local permite usar 127.0.0.1:8000; en producción mantiene la recepción desactivada. Solo ?instance=demo o el dominio de demo usan IndexedDB, aislado del álbum real. /admin → Fotos verifica en el servidor la misma clave del admin antes de listar o descargar. No se cambiaron reglas remotas: las nuevas colecciones no tienen acceso permitido desde clientes.
 
 ## Pendiente para recepción real
 
@@ -30,7 +30,9 @@ El backend tiene su propio repositorio: https://github.com/JuanZozaya06/wedding-
 
 Proyecto actual: boda-fotos (6c9f335e-0eb2-4824-a1e2-c7b72bf7f0d2). Servicio: fotos-api (aa6cab6f-60f1-44e2-90bd-a9304b1fd1ec), entorno production, PORT=8000. Primer despliegue verificado por Railway CLI; las actualizaciones se conectan al repositorio dedicado. Dashboard: https://railway.com/project/6c9f335e-0eb2-4824-a1e2-c7b72bf7f0d2.
 
-Pipeline: push a main → GitHub Actions (Backend CI, Python 3.12 y pruebas sin credenciales reales) → Railway con Wait for CI activado → construcción Docker → /ready. Un fallo de las pruebas impide publicar ese commit. Los pull requests ejecutan las pruebas sin desplegar. Las credenciales permanecen en variables privadas del servicio y no se necesitan secretos de Google en GitHub Actions.
+GitHub Actions ejecuta Backend CI (Python 3.12 y pruebas sin credenciales reales) en push a main y en pull requests. La fuente del servicio apunta al repositorio dedicado; la activación del despliegue automático y Wait for CI está pendiente de conceder acceso a wedding-backend a la app Railway en GitHub. Hasta completar ese permiso, el backend mantiene el despliegue manual ya verificado.
+
+Pipeline previsto tras autorizar: push a main → Backend CI → Railway con Wait for CI → construcción Docker → /ready. Un fallo de las pruebas impedirá publicar ese commit. Los pull requests ejecutan las pruebas sin desplegar. Las credenciales permanecen en variables privadas del servicio y no se necesitan secretos de Google en GitHub Actions.
 
 Para actualizar desde esta carpeta: revisar git diff, ejecutar las pruebas, hacer commit y git push origin main. El frontend se mantiene en wedding-invitation y conserva su pipeline de GitHub Pages.
 
