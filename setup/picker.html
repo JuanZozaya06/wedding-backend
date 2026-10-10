@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Conectar carpeta · G&J</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#f8f5ef;color:#44364f;font:17px/1.6 system-ui,sans-serif}
+    main{width:min(100%,560px);background:white;padding:clamp(24px,6vw,48px);border-radius:24px;box-shadow:0 12px 60px #44364f12}
+    h1{font:normal 32px/1.2 Georgia,serif}button{background:#76558d;border:0;border-radius:12px;padding:14px 20px;color:white;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:wait}button:focus-visible{outline:3px solid #b796cc;outline-offset:4px}small{display:block;margin-top:24px;color:#6d6571}
+  </style>
+</head>
+<body>
+<main>
+  <span>G&J · Configuración local</span>
+  <h1>Elige la carpeta de las fotos</h1>
+  <p>Selecciona en Google Drive la carpeta que creaste para la boda. Si entras dentro de ella, vuelve atrás para seleccionarla.</p>
+  <button id="choose" disabled>Elegir carpeta en Drive</button>
+  <p id="status" role="status" aria-live="polite">Cargando el selector de Google…</p>
+  <small>Este paso se hace una sola vez con tu cuenta. Los invitados no necesitarán iniciar sesión en Google.</small>
+</main>
+<script>
+  const button = document.getElementById('choose');
+  const statusText = document.getElementById('status');
+  let configuration;
+  function onApiLoad() {
+    gapi.load('picker', {callback: () => {
+      button.disabled = false;
+      statusText.textContent = 'Listo para seleccionar tu carpeta.';
+    }, onerror: () => {statusText.textContent = 'No se pudo cargar Google Picker. Recarga la página.';}});
+  }
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      const response = await fetch('/config', {cache: 'no-store'});
+      configuration = await response.json();
+      if (!response.ok) throw new Error(configuration.message);
+      const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        .setIncludeFolders(true).setSelectFolderEnabled(true)
+        .setMimeTypes('application/vnd.google-apps.folder');
+      const picker = new google.picker.PickerBuilder().addView(view)
+        .setDeveloperKey(configuration.apiKey).setOAuthToken(configuration.token)
+        .setAppId(configuration.appId).setOrigin(location.origin).setLocale('es')
+        .setTitle('Selecciona la carpeta de fotos de la boda')
+        .setCallback(async (data) => {
+          if (data.action === google.picker.Action.CANCEL) {
+            statusText.textContent = 'Puedes abrir el selector de nuevo.';
+          }
+          if (data.action !== google.picker.Action.PICKED) return;
+          statusText.textContent = 'Verificando permiso para guardar fotos…';
+          button.disabled = true;
+          try {
+            const selected = await fetch('/select', {method: 'POST',
+              headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: data.docs[0].id})});
+            const result = await selected.json();
+            statusText.textContent = result.message;
+            button.disabled = selected.ok;
+            if (selected.ok) button.textContent = 'Carpeta conectada';
+          } catch (_) {
+            statusText.textContent = 'No se pudo completar la verificación. Abre el selector otra vez.';
+            button.disabled = false;
+          }
+        }).build();
+      picker.setVisible(true);
+      statusText.textContent = 'Selecciona la carpeta de la boda en la ventana de Google.';
+    } catch (error) {
+      statusText.textContent = error.message || 'No se pudo abrir el selector.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+<script async defer src="https://apis.google.com/js/api.js?onload=onApiLoad" onerror="document.getElementById('status').textContent='No se pudo cargar Google. Revisa tu conexión y recarga.'"></script>
+</body>
+</html>
